@@ -47,7 +47,8 @@ void insertClientBuild(uint8_t *data, uint32_t data_len, sqlite3 *db)
         printf("FATAL: got a packet with opcode = 493 = CMSG_AUTH_SESSION but payload len=%u < 4\n", data_len);
         exit(1);
     }
-    uint32_t *clientBuild = (uint32_t*)data;
+    //uint32_t *clientBuild = (uint32_t*)data;
+    uint16_t *clientBuild = (uint16_t*)(data+2*1);
 
     const char* insertFormat = "insert into header values ('clientBuild', %u)";
     uint32_t allocSize = strlen(insertFormat)+10 /*uint32*/;
@@ -60,6 +61,19 @@ void insertClientBuild(uint8_t *data, uint32_t data_len, sqlite3 *db)
     sprintf(buffer, insertFormat, *clientBuild);
     executeSql(db, buffer);
     free(buffer);
+
+    // make sniffitzt happy
+    char sql[512];
+    sprintf(sql, "insert into header values ('clientLang', '%s')", "");
+    executeSql(db, sql);
+    sprintf(sql, "insert into header values ('accountName', '%s')", (char*)(data+22*1+1*2+1*8+5*4));
+    executeSql(db, sql);
+    sprintf(sql, "insert into header values ('realmName', '%s')", "");
+    executeSql(db, sql);
+    sprintf(sql, "insert into header values ('realmServer', '%s')", "");
+    executeSql(db, sql);
+    sprintf(sql, "insert into header values ('snifferVersion', '%s')", "");
+    executeSql(db, sql);   
 }
 
 void insertPacket(uint8_t s2c, uint64_t time, uint16_t opcode, uint8_t *data, uint32_t data_len, void* arg)
@@ -83,7 +97,7 @@ void insertPacket(uint8_t s2c, uint64_t time, uint16_t opcode, uint8_t *data, ui
 
     free(queryBuffer);
 
-    if(opcode == 493)
+    if(opcode == 0x880a) // 0x3000(4.0.1) //CMSG_AUTH_SESSION //493(3.3.5))
         insertClientBuild(data, data_len, db);
 }
 
